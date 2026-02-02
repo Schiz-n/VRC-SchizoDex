@@ -1,25 +1,48 @@
-import { login, getFriends } from "./vrchat.js";
+import readline from "node:readline";
+import {
+  login,
+  verifyTotp,
+  verifyEmail,
+  getCurrentUser,
+  getFriends
+} from "./vrchat.js";
 
-const USERNAME = process.env.VRC_USERNAME;
-const PASSWORD = process.env.VRC_PASSWORD;
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
 
-if (!USERNAME || !PASSWORD) {
-  console.error("Set VRC_USERNAME and VRC_PASSWORD env vars");
-  process.exit(1);
-}
+const ask = q => new Promise(r => rl.question(q, r));
 
 (async () => {
   try {
-    const me = await login(USERNAME, PASSWORD);
-    console.log(`Logged in as ${me.displayName}`);
+    const result = await login(
+      process.env.VRC_USERNAME,
+      process.env.VRC_PASSWORD
+    );
+
+    let user;
+
+    if (result.twoFactor) {
+      console.log("2FA required");
+      const code = await ask("Enter 2FA code: ");
+
+      if (result.methods.totp) await verifyTotp(code);
+      else await verifyEmail(code);
+
+      user = await getCurrentUser();
+    } else {
+      user = result.user;
+    }
+
+    console.log(`Logged in as ${user.displayName}`);
 
     const friends = await getFriends();
     console.log(`Friends: ${friends.length}`);
 
-    friends.forEach(f => {
-      console.log(`- ${f.displayName}`);
-    });
   } catch (err) {
     console.error(err.response?.data || err.message);
+  } finally {
+    rl.close();
   }
 })();
