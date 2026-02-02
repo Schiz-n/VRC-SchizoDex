@@ -63,9 +63,9 @@ console.log(
 
 // Defriends
 if (removedMutuals.length === 0) {
-  console.log("No mutuals added.");
+  console.log("No mutuals removed.");
 } else {
-  console.log("\nMutuals ADDED:");
+  console.log("\nMutuals REMOVED:");
   for (const { friendId, mutualId } of removedMutuals) {
     console.log(
       `- ${name(newSnap, friendId)} ↔ ${name(oldSnap, mutualId)}`
@@ -75,9 +75,9 @@ if (removedMutuals.length === 0) {
 
 // New friends
 if (addedMutuals.length === 0) {
-  console.log("\nNo mutuals removed.");
+  console.log("\nNo mutuals added.");
 } else {
-  console.log("\nMutuals REMOVED:");
+  console.log("\nMutuals ADDED:");
   for (const { friendId, mutualId } of addedMutuals) {
     console.log(
       `+ ${name(newSnap, friendId)} ↔ ${name(newSnap, mutualId)}`
