@@ -18,3 +18,6 @@ node index.js<br />
 $env:SNAP1="snapshot-1770067509019.json"<br />
 $env:SNAP2="snapshot-1770068233838.json"<br />
 node diffSnapshots.js<br />
+
+Example output: <br />
+![example output](https://i.imgur.com/wFxDofI.png)
