@@ -8,13 +8,13 @@ Vibe coded from start to finish with ChatGPT 5.2 Instant using **[VRCX](https://
 
 run:
 
-$env:VRC_USERNAME="Name"<br />
-$env:VRC_PASSWORD="Pass"<br />
-node index.js<br />
--> save the snapshot<br />
--> wait some time<br />
--> snapshot again<br />
+$env:VRC_USERNAME="Name"
+$env:VRC_PASSWORD="Pass"
+node index.js
+-> save the snapshot
+-> wait some time
+-> snapshot again
 
-$env:SNAP1="123.json"<br />
-$env:SNAP2="456.json"<br />
-node diffSnapshots.js<br />
+$env:SNAP1="snapshot-1770067509019.json"
+$env:SNAP2="snapshot-1770068233838.json"
+node diffSnapshots.js
