@@ -70,9 +70,55 @@ export async function getCurrentUser() {
   return res.data;
 }
 
-export async function getFriends() {
-  const res = await client.get("/auth/user/friends", {
-    params: { n: 100, offset: 0 },
-  });
+export async function getAllFriends() {
+  const all = [];
+  let offset = 0;
+  const pageSize = 100;
+
+  while (true) {
+    const res = await client.get("/auth/user/friends", {
+      params: {
+        n: pageSize,
+        offset
+      }
+    });
+
+    const batch = res.data;
+    all.push(...batch);
+
+    if (batch.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  return all;
+}
+
+export async function getUserFriends(userId) {
+  const all = [];
+  let offset = 0;
+  const pageSize = 100;
+
+  while (true) {
+    const res = await client.get(`/users/${userId}/friends`, {
+      params: {
+        n: pageSize,
+        offset
+      }
+    });
+
+    const batch = res.data;
+    all.push(...batch);
+
+    if (batch.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  return all;
+}
+export async function getMutualFriends(userId) {
+  const res = await client.get(
+    `/users/${userId}/mutuals/friends`
+  );
   return res.data;
 }
+
