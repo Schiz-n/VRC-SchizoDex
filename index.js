@@ -7,7 +7,7 @@ import {
   getAllFriends,
   getMutualFriends
 } from "./vrchat.js";
-
+import fs from "node:fs";
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -42,36 +42,80 @@ const ask = q => new Promise(r => rl.question(q, r));
     // 🔹 get ALL your friends
     const myFriends = await getAllFriends();
     console.log(`Total friends: ${myFriends.length}`);
+    
+		
+	const snapshot = {
+	  runAt: Date.now(),
+	  friends: new Map(),
+	  mutuals: new Map()
+	};
 
-    // 🔹 pick first 3 friends
-    const sample = myFriends.slice(0, 3);
+	// register friends
+	for (const f of myFriends) {
+	  snapshot.friends.set(f.id, {
+		id: f.id,
+		displayName: f.displayName
+	  });
+	}
 
-    for (const friend of sample) {
-      console.log(`\nFriend: ${friend.displayName}`);
+	// collect mutuals
+	for (const friend of myFriends) {
+	  console.log(`Fetching mutuals for ${friend.displayName}...`);
 
-      for (const friend of sample) {
-		  console.log(`\nFriend: ${friend.displayName}`);
+	  const mutuals = await getMutualFriends(friend.id);
+	  const set = new Set();
 
-		  const mutuals = await getMutualFriends(friend.id);
+	  for (const m of mutuals) {
+		if (!m.id) continue; // skip "Hidden Mutual"
+		set.add(m.id);
 
-		  console.log(`Mutuals (${mutuals.length}):`);
-		  mutuals.forEach(m => {
-			console.log(`  - ${m.displayName}`);
+		// also register mutual user if missing
+		if (!snapshot.friends.has(m.id)) {
+		  snapshot.friends.set(m.id, {
+			id: m.id,
+			displayName: m.displayName
 		  });
 		}
+	  }
+
+	  snapshot.mutuals.set(friend.id, set);
+	}
+	console.log(`Friends tracked: ${snapshot.friends.size}`);
+
+	const counts = [...snapshot.mutuals.entries()]
+	  .map(([id, set]) => ({
+		id,
+		count: set.size
+	  }))
+	  .sort((a, b) => b.count - a.count)
+	  .slice(0, 10);
+
+	console.log("Top 10 by mutual count:");
+	for (const c of counts) {
+	  console.log(
+		`${snapshot.friends.get(c.id)?.displayName ?? c.id}: ${c.count}`
+	  );
+	}
 
 
-      // mutuals = intersection of IDs
-      const myFriendIds = new Set(myFriends.map(f => f.id));
-      const mutuals = theirFriends.filter(f =>
-        myFriendIds.has(f.id)
-      );
+	function snapshotToJson(snapshot) {
+	  return {
+		runAt: snapshot.runAt,
+		friends: Object.fromEntries(snapshot.friends),
+		mutuals: Object.fromEntries(
+		  [...snapshot.mutuals.entries()].map(
+			([k, v]) => [k, [...v]]
+		  )
+		)
+	  };
+	}
 
-      console.log(`Mutuals (${mutuals.length}):`);
-      mutuals.forEach(m => {
-        console.log(`  - ${m.displayName}`);
-      });
-    }
+	fs.writeFileSync(
+	  `snapshot-${snapshot.runAt}.json`,
+	  JSON.stringify(snapshotToJson(snapshot), null, 2)
+	);
+
+	console.log(`Snapshot written to ${filename}`);
 
   } catch (err) {
     console.error(err.response?.data || err.message);

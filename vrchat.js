@@ -71,54 +71,63 @@ export async function getCurrentUser() {
 }
 
 export async function getAllFriends() {
-  const all = [];
-  let offset = 0;
-  const pageSize = 100;
+  const seen = new Map();
 
-  while (true) {
-    const res = await client.get("/auth/user/friends", {
-      params: {
-        n: pageSize,
-        offset
+  async function fetch(status) {
+    let offset = 0;
+    const pageSize = 100;
+
+    while (true) {
+      const res = await client.get("/auth/user/friends", {
+        params: {
+          n: pageSize,
+          offset,
+          [status]: true
+        }
+      });
+
+      const batch = res.data;
+      for (const f of batch) {
+        seen.set(f.id, f); // dedupe by ID
       }
-    });
 
-    const batch = res.data;
-    all.push(...batch);
-
-    if (batch.length < pageSize) break;
-    offset += pageSize;
+      if (batch.length < pageSize) break;
+      offset += pageSize;
+    }
   }
 
-  return all;
+  // VRChat requires these as separate passes
+  await fetch("online");
+  await fetch("offline");
+
+  return [...seen.values()];
 }
 
-export async function getUserFriends(userId) {
-  const all = [];
-  let offset = 0;
-  const pageSize = 100;
 
-  while (true) {
-    const res = await client.get(`/users/${userId}/friends`, {
-      params: {
-        n: pageSize,
-        offset
-      }
-    });
-
-    const batch = res.data;
-    all.push(...batch);
-
-    if (batch.length < pageSize) break;
-    offset += pageSize;
-  }
-
-  return all;
-}
 export async function getMutualFriends(userId) {
-  const res = await client.get(
-    `/users/${userId}/mutuals/friends`
-  );
-  return res.data;
+  const all = [];
+  let offset = 0;
+  const pageSize = 50; // VRChat mutual cap
+
+  while (true) {
+    const res = await client.get(
+      `/users/${userId}/mutuals/friends`,
+      {
+        params: {
+          n: pageSize,
+          offset
+        }
+      }
+    );
+
+    const batch = res.data;
+    all.push(...batch);
+
+    if (batch.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  return all;
 }
+
 
