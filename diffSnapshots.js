@@ -22,6 +22,16 @@ function loadSnapshot(path) {
   };
 }
 
+function findNewFriends(oldSnap, newSnap) {
+  const added = new Set();
+  for (const id of newSnap.friends.keys()) {
+    if (!oldSnap.friends.has(id)) {
+      added.add(id);
+    }
+  }
+  return added;
+}
+var newFriends = new Map();
 function diffSnapshots(oldSnap, newSnap) {
   const removedMutuals = [];
   const addedMutuals = [];
@@ -30,6 +40,8 @@ function diffSnapshots(oldSnap, newSnap) {
   const addedByMutual = new Map();
   const seenAddedPairs = new Set();
   const seenRemovedPairs = new Set();
+  newFriends = findNewFriends(oldSnap, newSnap);
+
 
 
 
@@ -78,6 +90,11 @@ removedMutuals.push({ friendId, mutualId: m });
 
 	  for (const friendId of friends) {
 		const key = pairKey(friendId, mutualId);
+		// Skip edges caused purely by new friend introduction
+if (newFriends.has(friendId) || newFriends.has(mutualId)) {
+  continue;
+}
+
 		if (seenAddedPairs.has(key)) continue;
 
 		seenAddedPairs.add(key);
@@ -135,3 +152,14 @@ if (addedMutuals.length === 0) {
     );
   }
 }
+
+if (newFriends.size > 0) {
+  console.log("\nNew FRIENDS:");
+  for (const id of newFriends) {
+    const mutualCount = newSnap.mutuals.get(id)?.size ?? 0;
+    console.log(
+      `+ ${name(newSnap, id)} (${mutualCount} mutuals)`
+    );
+  }
+}
+
