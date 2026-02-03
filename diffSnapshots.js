@@ -35,6 +35,8 @@ var newFriends = new Map();
 function diffSnapshots(oldSnap, newSnap) {
   const removedMutuals = [];
   const addedMutuals = [];
+  const visibilityDisabled = new Set();
+
 
   const oldFriends = new Set(oldSnap.friends.keys());
   const addedByMutual = new Map();
@@ -47,13 +49,21 @@ function diffSnapshots(oldSnap, newSnap) {
 
   for (const [friendId, oldSet] of oldSnap.mutuals.entries()) {
     const newSet = newSnap.mutuals.get(friendId) || new Set();
-	// Skip friend-side visibility toggles
-	if (oldSet.size === 0 && newSet.size >= 5) {
+	// Skip people who turned on mutuals
+	if (oldSet.size === 0 && newSet.size >= 3) {
+	  continue;
+	}
+	// Skip people who turned off mutuals
+	if (oldSet.size > 3 && newSet.size === 0) {
+	  visibilityDisabled.add(friendId);
 	  continue;
 	}
 
+
+
     // removed mutuals
     for (const m of oldSet) {
+		  if (visibilityDisabled.has(friendId) || visibilityDisabled.has(m)) continue;
       if (isHidden(oldSnap, m) || isHidden(newSnap, m)) continue;
       if (!newSet.has(m)) {
         const key = pairKey(friendId, m);
@@ -66,6 +76,7 @@ removedMutuals.push({ friendId, mutualId: m });
 
     // collect added mutuals (no filtering yet)
     for (const m of newSet) {
+		  if (visibilityDisabled.has(friendId) || visibilityDisabled.has(m)) continue;
       if (isHidden(oldSnap, m) || isHidden(newSnap, m)) continue;
       if (!oldSet.has(m)) {
         const arr = addedByMutual.get(m) ?? [];
