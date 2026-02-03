@@ -4,7 +4,6 @@ function isHidden(snapshot, id) {
   return snapshot.friends.get(id)?.displayName === "Hidden Mutual";
 }
 
-
 function loadSnapshot(path) {
   const raw = JSON.parse(fs.readFileSync(path, "utf8"));
 
@@ -23,9 +22,15 @@ function diffSnapshots(oldSnap, newSnap) {
   const removedMutuals = [];
   const addedMutuals = [];
 
+  const oldFriends = new Set(oldSnap.friends.keys());
+  const addedByMutual = new Map();
+
   for (const [friendId, oldSet] of oldSnap.mutuals.entries()) {
     const newSet = newSnap.mutuals.get(friendId) || new Set();
-	
+	// Skip friend-side visibility toggles
+	if (oldSet.size === 0 && newSet.size >= 5) {
+	  continue;
+	}
 
     // removed mutuals
     for (const m of oldSet) {
@@ -35,17 +40,34 @@ function diffSnapshots(oldSnap, newSnap) {
       }
     }
 
-    // added mutuals
+    // collect added mutuals (no filtering yet)
     for (const m of newSet) {
-	  if (isHidden(oldSnap, m) || isHidden(newSnap, m)) continue;
+      if (isHidden(oldSnap, m) || isHidden(newSnap, m)) continue;
       if (!oldSet.has(m)) {
-        addedMutuals.push({ friendId, mutualId: m });
+        const arr = addedByMutual.get(m) ?? [];
+        arr.push(friendId);
+        addedByMutual.set(m, arr);
       }
+    }
+  }
+
+  // suppress visibility floods
+  const VISIBILITY_FLOOD_THRESHOLD = 10;
+
+  for (const [mutualId, friends] of addedByMutual.entries()) {
+    if (friends.length >= VISIBILITY_FLOOD_THRESHOLD) {
+      // visibility toggle detected
+      continue;
+    }
+
+    for (const friendId of friends) {
+      addedMutuals.push({ friendId, mutualId });
     }
   }
 
   return { addedMutuals, removedMutuals };
 }
+
 
 function name(snapshot, id) {
   return snapshot.friends.get(id)?.displayName ?? id;
