@@ -4,6 +4,10 @@ function isHidden(snapshot, id) {
   return snapshot.friends.get(id)?.displayName === "Hidden Mutual";
 }
 
+function pairKey(a, b) {
+  return a < b ? `${a}|${b}` : `${b}|${a}`;
+}
+
 function loadSnapshot(path) {
   const raw = JSON.parse(fs.readFileSync(path, "utf8"));
 
@@ -24,6 +28,10 @@ function diffSnapshots(oldSnap, newSnap) {
 
   const oldFriends = new Set(oldSnap.friends.keys());
   const addedByMutual = new Map();
+  const seenAddedPairs = new Set();
+  const seenRemovedPairs = new Set();
+
+
 
   for (const [friendId, oldSet] of oldSnap.mutuals.entries()) {
     const newSet = newSnap.mutuals.get(friendId) || new Set();
@@ -36,7 +44,11 @@ function diffSnapshots(oldSnap, newSnap) {
     for (const m of oldSet) {
       if (isHidden(oldSnap, m) || isHidden(newSnap, m)) continue;
       if (!newSet.has(m)) {
-        removedMutuals.push({ friendId, mutualId: m });
+        const key = pairKey(friendId, m);
+if (seenRemovedPairs.has(key)) continue;
+seenRemovedPairs.add(key);
+
+removedMutuals.push({ friendId, mutualId: m });
       }
     }
 
@@ -60,9 +72,18 @@ function diffSnapshots(oldSnap, newSnap) {
       continue;
     }
 
-    for (const friendId of friends) {
-      addedMutuals.push({ friendId, mutualId });
-    }
+
+	for (const [mutualId, friends] of addedByMutual.entries()) {
+	  if (friends.length >= VISIBILITY_FLOOD_THRESHOLD) continue;
+
+	  for (const friendId of friends) {
+		const key = pairKey(friendId, mutualId);
+		if (seenAddedPairs.has(key)) continue;
+
+		seenAddedPairs.add(key);
+		addedMutuals.push({ friendId, mutualId });
+	  }
+	}
   }
 
   return { addedMutuals, removedMutuals };
