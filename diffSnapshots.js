@@ -1,5 +1,10 @@
 import fs from "node:fs";
 
+function isHidden(snapshot, id) {
+  return snapshot.friends.get(id)?.displayName === "Hidden Mutual";
+}
+
+
 function loadSnapshot(path) {
   const raw = JSON.parse(fs.readFileSync(path, "utf8"));
 
@@ -20,9 +25,11 @@ function diffSnapshots(oldSnap, newSnap) {
 
   for (const [friendId, oldSet] of oldSnap.mutuals.entries()) {
     const newSet = newSnap.mutuals.get(friendId) || new Set();
+	
 
     // removed mutuals
     for (const m of oldSet) {
+      if (isHidden(oldSnap, m) || isHidden(newSnap, m)) continue;
       if (!newSet.has(m)) {
         removedMutuals.push({ friendId, mutualId: m });
       }
@@ -30,6 +37,7 @@ function diffSnapshots(oldSnap, newSnap) {
 
     // added mutuals
     for (const m of newSet) {
+	  if (isHidden(oldSnap, m) || isHidden(newSnap, m)) continue;
       if (!oldSet.has(m)) {
         addedMutuals.push({ friendId, mutualId: m });
       }
