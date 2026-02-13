@@ -145,10 +145,32 @@ if (removedMutuals.length === 0) {
   console.log("No mutuals removed.");
 } else {
   console.log("\nMutuals REMOVED:");
+
+  // Group by mutualId
+  const grouped = new Map();
+
   for (const { friendId, mutualId } of removedMutuals) {
-    console.log(
-      `- ${name(newSnap, friendId)} ↔ ${name(oldSnap, mutualId)}`
-    );
+    const arr = grouped.get(mutualId) ?? [];
+    arr.push(friendId);
+    grouped.set(mutualId, arr);
+  }
+
+  // Optional: sort groups alphabetically by display name
+  const sortedMutualIds = [...grouped.keys()].sort((a, b) =>
+    name(newSnap, a).localeCompare(name(newSnap, b))
+  );
+
+  for (const mutualId of sortedMutualIds) {
+    console.log(`\n${name(oldSnap, mutualId)}:`);
+
+    const friends = grouped.get(mutualId)
+      .sort((a, b) =>
+        name(newSnap, a).localeCompare(name(newSnap, b))
+      );
+
+    for (const friendId of friends) {
+      console.log(`- ${name(newSnap, friendId)}`);
+    }
   }
 }
 
