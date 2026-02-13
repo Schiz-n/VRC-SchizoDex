@@ -174,15 +174,37 @@ if (removedMutuals.length === 0) {
   }
 }
 
-// New friends
+// New mutuals
 if (addedMutuals.length === 0) {
   console.log("\nNo mutuals added.");
 } else {
   console.log("\nMutuals ADDED:");
+
+  // Group by mutualId
+  const grouped = new Map();
+
   for (const { friendId, mutualId } of addedMutuals) {
-    console.log(
-      `+ ${name(newSnap, friendId)} ↔ ${name(newSnap, mutualId)}`
-    );
+    const arr = grouped.get(mutualId) ?? [];
+    arr.push(friendId);
+    grouped.set(mutualId, arr);
+  }
+
+  // Sort groups alphabetically
+  const sortedMutualIds = [...grouped.keys()].sort((a, b) =>
+    name(newSnap, a).localeCompare(name(newSnap, b))
+  );
+
+  for (const mutualId of sortedMutualIds) {
+    console.log(`\n${name(newSnap, mutualId)}:`);
+
+    const friends = grouped.get(mutualId)
+      .sort((a, b) =>
+        name(newSnap, a).localeCompare(name(newSnap, b))
+      );
+
+    for (const friendId of friends) {
+      console.log(`+ ${name(newSnap, friendId)}`);
+    }
   }
 }
 
